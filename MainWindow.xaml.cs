@@ -38,8 +38,8 @@ namespace PaswordCracker
         private void crack_button_MouseUp(object sender, MouseButtonEventArgs e)
         {
             password = ((TextBox)FindName("password_box")).Text;
-            
-            ((TextBlock)FindName("hash_box")).Text = "Your SHA-1 hash: "
+
+            ((TextBlock)FindName("hash_box")).Text = "Your SHA-1 hash: " + computeHash(password);
         }
 
         private void stop_button_MouseUp(object sender, MouseButtonEventArgs e)
