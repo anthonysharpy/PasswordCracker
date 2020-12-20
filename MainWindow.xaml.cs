@@ -252,8 +252,6 @@ end:
 
             for (ulong i = startat; i <= stopat && !done; i++)
             {
-                attempts++;
-
                 if (computeHash(curstring, oursha).Equals(passwordhash))
                 {
                     Dispatcher.Invoke(() =>
@@ -268,6 +266,10 @@ end:
 
                 if (i % 50000 == 0)
                 {
+                    if (i == 0) return;
+
+                    attempts += 50000;
+
                     if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
                     if(persecond > 0) completiontime = possibilities / persecond;
 
