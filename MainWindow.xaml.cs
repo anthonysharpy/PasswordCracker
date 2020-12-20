@@ -26,6 +26,7 @@ namespace PaswordCracker
         bool done = false;
         string password = "";
         string passwordhash = "";
+        byte[] passwordbytearrayhash;
         ulong possibilities = 0;
         ulong attempts = 0;
 
@@ -49,7 +50,7 @@ namespace PaswordCracker
             ThreadPool.SetMinThreads(12, 12);
         }
 
-        static string computeHash(string input, SHA256 thesha)
+        static string computeStringHash(string input, SHA256 thesha)
         {
             thesha.ComputeHash(Encoding.ASCII.GetBytes(input));
 
@@ -61,6 +62,11 @@ namespace PaswordCracker
             }
 
             return output;
+        }
+
+        static byte[] computeByteArrayHash(string input, SHA256 thesha)
+        {
+            return thesha.ComputeHash(Encoding.ASCII.GetBytes(input));
         }
 
         ulong howManyPossiblePasswords(int passwordlength)
@@ -90,7 +96,8 @@ namespace PaswordCracker
             SHA256 tempsha = SHA256.Create();
 
             password = passwordbox.Text;
-            passwordhash = computeHash(password, tempsha);
+            passwordhash = computeStringHash(password, tempsha);
+            passwordbytearrayhash = computeByteArrayHash(password, tempsha);
             attempts = 0;
             outputbox.Text = "";
 
@@ -235,6 +242,17 @@ end:
             scroller.ScrollToBottom();
         }
 
+        static bool areHashesEqual(byte[] hash1, byte[] hash2)
+        {
+            for(int i = 0; i < 32; i++)
+            {
+                if (hash1[i] != hash2[i]) return false;
+            }
+
+            return true;
+        }
+
+
         void doCrack(ulong startat, ulong stopat, int id)
         {
             string curstring = incrementStringQuick("a", startat);
@@ -252,7 +270,7 @@ end:
 
             for (ulong i = startat; i <= stopat && !done; i++)
             {
-                if (computeHash(curstring, oursha).Equals(passwordhash))
+                if (areHashesEqual(computeByteArrayHash(curstring, oursha), passwordbytearrayhash))
                 {
                     Dispatcher.Invoke(() =>
                     {
@@ -264,11 +282,11 @@ end:
                     return;
                 }
 
-                if (i % 50000 == 0)
+                if (i % 1000000 == 0)
                 {
                     if (i != 0)
                     {
-                        attempts += 50000;
+                        attempts += 1000000;
 
                         if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
                         if (persecond > 0) completiontime = possibilities / persecond;
