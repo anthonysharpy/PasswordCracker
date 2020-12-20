@@ -36,8 +36,6 @@ namespace PaswordCracker
         TextBlock outputbox;
         TextBlock outputinfo;
 
-        SHA256 hashthingy;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -49,19 +47,17 @@ namespace PaswordCracker
 
             ThreadPool.SetMaxThreads(12, 12);
             ThreadPool.SetMinThreads(12, 12);
-
-            hashthingy = SHA256.Create();
         }
 
-        string computeHash(string input)
+        static string computeHash(string input, SHA256 thesha)
         {
-            hashthingy.ComputeHash(Encoding.ASCII.GetBytes(input));
+            thesha.ComputeHash(Encoding.ASCII.GetBytes(input));
 
             string output = "";
 
             for(int i = 0; i < 32; i++) // sha256 returns 32 bytes
             {
-                output += (int)hashthingy.Hash[i];
+                output += (int)thesha.Hash[i];
             }
 
             return output;
@@ -72,7 +68,7 @@ namespace PaswordCracker
             return (ulong)Math.Pow(26, passwordlength);
         }
 
-        int getTime()
+        static int getTime()
         {
             return (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
@@ -91,18 +87,28 @@ namespace PaswordCracker
         {
             done = false;
 
+            SHA256 tempsha = SHA256.Create();
+
             password = passwordbox.Text;
-            passwordhash = computeHash(password);
+            passwordhash = computeHash(password, tempsha);
+            attempts = 0;
+            outputbox.Text = "";
+
 
             if(!validPassword(password))
             {
                 hashbox.Text = "ERROR: password must only contain lowercase letters";
                 return;
             }
+            if(password.Length > 10)
+            {
+                hashbox.Text = "ERROR: password can be a maximum of 10 characters";
+                return;
+            }
 
             hashbox.Text = "Your SHA256 hash: " + passwordhash;
 
-            int threads = 12;
+            int threads = 12; // because my CPU has 12 threads.
 
             possibilities = howManyPossiblePasswords(password.Length);
             ulong possperthread = possibilities / (ulong)threads;
@@ -124,46 +130,101 @@ namespace PaswordCracker
             Task task12 = Task.Factory.StartNew(() => doCrack(possibilities - possforlastthread, possibilities-1, 12));
         }
 
-        string incrementString(string currentstring, ulong times)
+        static string incrementStringQuick(string currentstring, ulong times)
+        {
+            if (times == 0) return currentstring;
+
+            char[] output = new char[10];
+            int[] results = new int[10];
+            ulong total = 0;
+
+            /*
+            last char = worth 1
+            second to last = worth 26
+            third to last = 676
+            17576
+            456976
+            11881376
+            308915776
+            8031810176
+            208827064576
+            5429503678976
+
+            */
+
+            // could do this as a loop
+            results[0] = (int)Math.Floor((decimal)(times / (ulong)5429503678976));
+            total += 5429503678976 * (ulong)results[0];
+            results[1] = (int)Math.Floor((decimal)((times-total) / (ulong)208827064576));
+            total += 208827064576 * (ulong)results[1];
+            results[2] = (int)Math.Floor((decimal)((times - total) / (ulong)8031810176));
+            total += 8031810176 * (ulong)results[2];
+            results[3] = (int)Math.Floor((decimal)((times - total) / (ulong)308915776));
+            total += 308915776 * (ulong)results[3];
+            results[4] = (int)Math.Floor((decimal)((times - total) / (ulong)11881376));
+            total += 11881376 * (ulong)results[4];
+            results[5] = (int)Math.Floor((decimal)((times - total) / (ulong)456976));
+            total += 456976 * (ulong)results[5];
+            results[6] = (int)Math.Floor((decimal)((times - total) / (ulong)17576));
+            total += 17576 * (ulong)results[6];
+            results[7] = (int)Math.Floor((decimal)((times - total) / (ulong)676));
+            total += 676 * (ulong)results[7];
+            results[8] = (int)Math.Floor((decimal)((times - total) / (ulong)26));
+            total += 26 * (ulong)results[8];
+            results[9] = (int)(times - total);
+
+            string finalstring = "";
+            bool startedstring = false;
+
+            for(int i = 0; i < 10; i++)
+            {
+                if (results[i] > 0 || startedstring)
+                {
+                    startedstring = true;
+                    finalstring += (char)('a' + results[i]); // a actually represents 0            
+                }
+            }
+
+            return finalstring;
+        }
+
+        static string incrementString(string currentstring)
         {
             bool addnewchar;
-            bool dirty;
 
-            for (ulong t = 0; t < times; t++)
+            char[] chararray = currentstring.ToCharArray();
+            addnewchar = false;
+
+            int i = chararray.Length - 1;
+            chararray[i] = (char)(chararray[i] + 1); // increments last character
+
+            int x = chararray.Length - 1;
+
+rescan:
+            for (; x > -1; x--)
             {
-                char[] chararray = currentstring.ToCharArray();
-                addnewchar = false;
-
-                int i = chararray.Length - 1;
-                chararray[i] = (char)((int)chararray[i] + 1); // increments last character
-
-                dirty = true; // need to analyse to make sure its been incremented along the whole string
-
-                while (dirty)
+                if (chararray[x] == '{') // { is 1 after z
                 {
-                    dirty = false;
+                    // reset this char
 
-                    for (int x = chararray.Length - 1; x > -1; x--)
+                    chararray[x] = 'a';
+
+                    // increment previous char
+
+                    if (x == 0)
                     {
-                        if (chararray[x] == '{') // { is 1 after z
-                        {
-                            dirty = true;
-
-                            // reset this char
-
-                            chararray[x] = 'a';
-
-                            // increment previous char
-
-                            if (x == 0) addnewchar = true; // was first char, so we just need to add a new one on later
-                            else chararray[x - 1] = (char)((int)chararray[x - 1] + 1); // increment previous char
-                        }
+                        addnewchar = true; // was first char, so we just need to add a new one on later
+                        goto end; // very very slightly faster because otherwise we'd rescan the whole thing
                     }
-                }
+                    else chararray[x - 1] = (char)((int)chararray[x - 1] + 1); // increment previous char
 
-                currentstring = new string(chararray);
-                if (addnewchar) currentstring = "a" + currentstring;
+                    goto rescan; // faster than setting a variable probably ... the alternative was using a while loop with a variable that was set to true if we need to rescan, then doing while(needtorescan). setting and getting that variable adds overhead, this is faster.
+                }
             }
+                
+end:
+            currentstring = new string(chararray);
+            if (addnewchar) currentstring = "a" + currentstring;
 
             return currentstring;
         }
@@ -176,51 +237,64 @@ namespace PaswordCracker
 
         void doCrack(ulong startat, ulong stopat, int id)
         {
-            string curstring = incrementString("a", startat);
-            string endpoint = incrementString("a", stopat);
+            string curstring = incrementStringQuick("a", startat);
+            string endpoint = incrementStringQuick("a", stopat);
+
+            SHA256 oursha = SHA256.Create();
 
             Dispatcher.Invoke(() =>
             {
-                pushToOutput("Thread " + id + " scanning range "+curstring+"-"+endpoint+" (n="+startat+"-"+stopat+")");
+                pushToOutput("Thread " + id + " scanning range "+ curstring + "-"+endpoint+" (n="+ String.Format("{0:n0}", startat)+"-"+String.Format("{0:n0}", stopat)+")");
             });
 
             ulong persecond = 0;
+            ulong completiontime = 0;
 
             for (ulong i = startat; i <= stopat && !done; i++)
             {
                 attempts++;
 
-                if (i % 1 == 0)
-                {
-                    if (!done)
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
-                            outputinfo.Text = "Trying hash " + attempts + "/" + possibilities + "     " + persecond + " attempts/sec";
-                            pushToOutput("Thread " + id + ": Trying " + curstring);
-                        });
-                    }
-                }
-
-                if (computeHash(curstring) == passwordhash)
+                if (computeHash(curstring, oursha).Equals(passwordhash))
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        pushToOutput("Thread "+id+" found password: " + curstring);
-                        done = true;
+                        foundpasswordtextbox.Text = "Found password: "+curstring;
+                        pushToOutput("Thread " + id + " found password: " + curstring);
+                    });
+
+                    done = true;
+                    return;
+                }
+
+                if (i % 50000 == 0)
+                {
+                    if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
+                    if(persecond > 0) completiontime = possibilities / persecond;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        outputinfo.Text = "Trying hash " + String.Format("{0:n0}", attempts) + "/" + String.Format("{0:n0}", possibilities) + "     " + String.Format("{0:n0}", persecond) + " attempts/sec    Time left until guaranteed completion: "+ String.Format("{0:n0}", (((ulong)starttime+completiontime)-(ulong)getTime()))+" seconds";
+                        pushToOutput("Thread " + id + ": Trying " + curstring);
                     });
                 }
 
-                curstring = incrementString(curstring, 1);
+                curstring = incrementString(curstring);
             }
 
-            //Dispatcher.Invoke(() =>
-            //{
-             //   if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
-             //   outputinfo.Text = "Trying hash " + attempts + "/" + possibilities + "     " + persecond + " attempts/sec";
-             //   pushToOutput("Thread "+id+" finished");
-            //});
+            if (done)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    pushToOutput("Thread " + id + " finished (password already found)");
+                });
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    pushToOutput("Thread " + id + " finished (ran out of passwords to try)");
+                });
+            }
         }
     }
 }
