@@ -266,18 +266,19 @@ end:
 
                 if (i % 50000 == 0)
                 {
-                    if (i == 0) return;
-
-                    attempts += 50000;
-
-                    if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
-                    if(persecond > 0) completiontime = possibilities / persecond;
-
-                    Dispatcher.Invoke(() =>
+                    if (i != 0)
                     {
-                        outputinfo.Text = "Trying hash " + String.Format("{0:n0}", attempts) + "/" + String.Format("{0:n0}", possibilities) + "     " + String.Format("{0:n0}", persecond) + " attempts/sec    Time left until guaranteed completion: "+ String.Format("{0:n0}", (((ulong)starttime+completiontime)-(ulong)getTime()))+" seconds";
-                        pushToOutput("Thread " + id + ": Trying " + curstring);
-                    });
+                        attempts += 50000;
+
+                        if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
+                        if (persecond > 0) completiontime = possibilities / persecond;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            outputinfo.Text = "Trying hash " + String.Format("{0:n0}", attempts) + "/" + String.Format("{0:n0}", possibilities) + "     " + String.Format("{0:n0}", persecond) + " attempts/sec    Time left until guaranteed completion: " + String.Format("{0:n0}", (((ulong)starttime + completiontime) - (ulong)getTime())) + " seconds";
+                            pushToOutput("Thread " + id + ": Trying " + curstring);
+                        });
+                    }
                 }
 
                 curstring = incrementString(curstring);
