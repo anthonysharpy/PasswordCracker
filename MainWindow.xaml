@@ -5,17 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PaswordCracker"
         mc:Ignorable="d"
-        Title="Password Cracker" Height="470" Width="1020">
-    <Grid>
-        <TextBox x:Name="password_box" HorizontalAlignment="Left" Height="20" Margin="112,10,0,0" Text="pass" TextWrapping="Wrap" VerticalAlignment="Top" Width="200"/>
-        <ScrollViewer x:Name="scroller" Margin="10,73,10,86">
+        Title="Password Cracker" Height="470" Width="1040">
+    <Grid Margin="0,0,0,-16">
+        <TextBox x:Name="password_box" HorizontalAlignment="Left" Height="23" Margin="129,10,0,0" Text="pass" TextWrapping="Wrap" VerticalAlignment="Top" Width="103" FontSize="14" RenderTransformOrigin="0.543,0.643"/>
+        <ScrollViewer x:Name="scroller" Margin="20,73,20,102">
             <TextBlock x:Name="output_text" TextWrapping="Wrap" Height="Auto" Text="" Width="970"/>
         </ScrollViewer>
-        <TextBlock x:Name="text_block" HorizontalAlignment="Left" Height="20" Margin="10,10,0,0" Text="Enter a password:" TextWrapping="Wrap" VerticalAlignment="Top" Width="123"/>
-        <TextBlock x:Name="hash_box" HorizontalAlignment="Left" Height="20" Margin="317,10,0,0" Text="Your SHA-1 hash:" TextWrapping="Wrap" VerticalAlignment="Top" Width="693"/>
-        <TextBlock x:Name="output_info" HorizontalAlignment="Left" Height="20" Margin="10,35,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="693"/>
-        <Button x:Name="crack_button" Content="Begin Crack" HorizontalAlignment="Center" Height="30" Margin="0,392,0,0" VerticalAlignment="Top" Width="128" Click="crackButtonClick" />
-        <Border BorderThickness="2" BorderBrush="Black" HorizontalAlignment="Center" Height="295" Margin="0,73,0,0" VerticalAlignment="Top" Width="1000"/>
+        <TextBlock x:Name="text_block" HorizontalAlignment="Left" Height="40" Margin="10,10,0,0" Text="Enter a password:" TextWrapping="Wrap" VerticalAlignment="Top" Width="173" FontSize="14"/>
+        <TextBlock x:Name="hash_box" HorizontalAlignment="Left" Height="20" Margin="249,10,0,0" Text="Your SHA-1 hash:" TextWrapping="Wrap" VerticalAlignment="Top" Width="693" FontSize="14"/>
+        <TextBlock x:Name="output_info" HorizontalAlignment="Left" Height="20" Margin="10,38,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="693" FontSize="14"/>
+        <Button x:Name="crack_button" Content="Begin Crack" HorizontalAlignment="Center" Height="30" Margin="0,384,0,0" VerticalAlignment="Top" Width="128" Click="crackButtonClick" />
+        <Border BorderThickness="2" BorderBrush="Black" HorizontalAlignment="Center" Height="297" Margin="0,72,0,0" VerticalAlignment="Top" Width="1000"/>
 
     </Grid>
 </Window>

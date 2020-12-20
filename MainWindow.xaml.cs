@@ -69,12 +69,22 @@ namespace PaswordCracker
 
         ulong howManyPossiblePasswords(int passwordlength)
         {
-            return (ulong)Math.Pow(36, passwordlength);
+            return (ulong)Math.Pow(26, passwordlength);
         }
 
         int getTime()
         {
             return (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+        }
+
+        bool validPassword(string pass)
+        {
+            for(int i = 0; i < pass.Length; i++)
+            {
+                if (pass[i] < 97 || pass[i] > 122) return false;
+            }
+
+            return true;
         }
 
         void crackButtonClick(object sender, RoutedEventArgs e)
@@ -83,6 +93,12 @@ namespace PaswordCracker
 
             password = passwordbox.Text;
             passwordhash = computeHash(password);
+
+            if(!validPassword(password))
+            {
+                hashbox.Text = "ERROR: password must only contain lowercase letters";
+                return;
+            }
 
             hashbox.Text = "Your SHA256 hash: " + passwordhash;
 
@@ -94,23 +110,18 @@ namespace PaswordCracker
 
             starttime = getTime();
 
-           // Task task1 = Task.Factory.StartNew(() => doCrack(0, possperthread - 1, 1));
-            //Task task2 = Task.Factory.StartNew(() => doCrack(possperthread, (possperthread * 2) - 1, 2));
-           // Task task3 = Task.Factory.StartNew(() => doCrack(possperthread * 2, (possperthread * 3) - 1, 3));
-            //Task task4 = Task.Factory.StartNew(() => doCrack(possperthread * 3, (possperthread * 4) - 1, 4));
-            //Task task5 = Task.Factory.StartNew(() => doCrack(possperthread * 4, (possperthread * 5) - 1, 5));
-            //Task task6 = Task.Factory.StartNew(() => doCrack(possperthread * 5, (possperthread * 6) - 1, 6));
+            Task task1 = Task.Factory.StartNew(() => doCrack(0, possperthread - 1, 1));
+            Task task2 = Task.Factory.StartNew(() => doCrack(possperthread, (possperthread * 2) - 1, 2));
+            Task task3 = Task.Factory.StartNew(() => doCrack(possperthread * 2, (possperthread * 3) - 1, 3));
+            Task task4 = Task.Factory.StartNew(() => doCrack(possperthread * 3, (possperthread * 4) - 1, 4));
+            Task task5 = Task.Factory.StartNew(() => doCrack(possperthread * 4, (possperthread * 5) - 1, 5));
+            Task task6 = Task.Factory.StartNew(() => doCrack(possperthread * 5, (possperthread * 6) - 1, 6));
             Task task7 = Task.Factory.StartNew(() => doCrack(possperthread * 6, (possperthread * 7) - 1, 7));
-           // Task task8 = Task.Factory.StartNew(() => doCrack(possperthread * 7, (possperthread * 8) - 1, 8));
-            //Task task9 = Task.Factory.StartNew(() => doCrack(possperthread * 8, (possperthread * 9) - 1, 9));
-            //Task task10 = Task.Factory.StartNew(() => doCrack(possperthread * 9, (possperthread * 10) - 1, 10));
-            //Task task11 = Task.Factory.StartNew(() => doCrack(possperthread * 10, (possperthread * 11) - 1, 11));
-            //Task task12 = Task.Factory.StartNew(() => doCrack(possibilities - possforlastthread, possibilities-1, 12));
-
-            //Task.WaitAll(task1, task2, task3, task4, task5, task6, task7, task8, task9, task10, task11, task12);
-            //Console.WriteLine("All threads complete");
-
-            //pushToOutput("Finished");
+            Task task8 = Task.Factory.StartNew(() => doCrack(possperthread * 7, (possperthread * 8) - 1, 8));
+            Task task9 = Task.Factory.StartNew(() => doCrack(possperthread * 8, (possperthread * 9) - 1, 9));
+            Task task10 = Task.Factory.StartNew(() => doCrack(possperthread * 9, (possperthread * 10) - 1, 10));
+            Task task11 = Task.Factory.StartNew(() => doCrack(possperthread * 10, (possperthread * 11) - 1, 11));
+            Task task12 = Task.Factory.StartNew(() => doCrack(possibilities - possforlastthread, possibilities-1, 12));
         }
 
         string incrementString(string currentstring, ulong times)
@@ -166,45 +177,50 @@ namespace PaswordCracker
         void doCrack(ulong startat, ulong stopat, int id)
         {
             string curstring = incrementString("a", startat);
+            string endpoint = incrementString("a", stopat);
 
             Dispatcher.Invoke(() =>
             {
-                pushToOutput("Thread " + id + " starting with "+curstring+" (n="+startat+")");
+                pushToOutput("Thread " + id + " scanning range "+curstring+"-"+endpoint+" (n="+startat+"-"+stopat+")");
             });
+
+            ulong persecond = 0;
 
             for (ulong i = startat; i <= stopat && !done; i++)
             {
                 attempts++;
 
-                if (i % 50000 == 0)
+                if (i % 1 == 0)
                 {
-                    Dispatcher.Invoke(() =>
+                    if (!done)
                     {
-                        ulong persecond = 0;
-                        if((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
-                        outputinfo.Text = "Trying hash " + attempts + "/" + possibilities+"     "+persecond+" attempts/sec";
-                        pushToOutput("Thread "+id+": Trying " + curstring);
-                    });
+                        Dispatcher.Invoke(() =>
+                        {
+                            if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
+                            outputinfo.Text = "Trying hash " + attempts + "/" + possibilities + "     " + persecond + " attempts/sec";
+                            pushToOutput("Thread " + id + ": Trying " + curstring);
+                        });
+                    }
                 }
 
                 if (computeHash(curstring) == passwordhash)
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        pushToOutput("Found password: " + curstring);
+                        pushToOutput("Thread "+id+" found password: " + curstring);
                         done = true;
                     });
-
-                    break;
                 }
 
                 curstring = incrementString(curstring, 1);
             }
 
-            Dispatcher.Invoke(() =>
-            {
-                pushToOutput("Thread "+id+" finished");
-            });
+            //Dispatcher.Invoke(() =>
+            //{
+             //   if ((ulong)getTime() - (ulong)starttime > 0) persecond = attempts / ((ulong)getTime() - (ulong)starttime);
+             //   outputinfo.Text = "Trying hash " + attempts + "/" + possibilities + "     " + persecond + " attempts/sec";
+             //   pushToOutput("Thread "+id+" finished");
+            //});
         }
     }
 }
